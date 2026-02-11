@@ -45,6 +45,8 @@ contains
       real(rk) :: tt, ss, kext
       real(rk) :: c(npelagic)
       real(rk) :: rhs(npelagic)
+      real(rk) :: tt_a(1), ss_a(1), kext_a(1)
+      real(rk) :: ccpl_a(npelagic,1), scpl_a(npelagic,1)
 
       ! ---- spatial loop ----
       _LOOP_BEGIN_
@@ -64,7 +66,30 @@ contains
          ! まずは 1セルだけの形で呼ぶために、次ステップで小配列に詰めます。
          !
          ! いまは rhs=0 でコンパイル通す骨格にしておきます。
-         rhs = 0.0_rk
+         ! rhs = 0.0_rk
+         ! --- EcoPARI呼び出し用の1セル配列 ---
+
+         tt_a(1)   = tt
+         ss_a(1)   = ss
+         kext_a(1) = kext
+
+         do i=1,npelagic
+            ccpl_a(i,1) = c(i)
+         end do
+
+         ! --- EcoPARI reaction ---
+         call lt_eco_scpelg_fabm( &
+            1, 1, 1, 1, 0.0_rk, &
+            [0.0_rk], [0.0_rk], [1], [1], [0.0_rk], [0.0_rk], [0.0_rk], &
+            tt_a, ss_a, kext_a, &
+            ccpl_a, ccpl_a, ccpl_a, scpl_a, ccpl_a, tt_a, [1], &
+            [0.0_rk], [0.0_rk], [0.0_rk], [0.0_rk], &
+            ierror)
+
+         do i=1,npelagic
+            rhs(i) = scpl_a(i,1)
+         end do
+
          ierror = 0
 
          ! return rhs (dt を掛けない)
